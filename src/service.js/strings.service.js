@@ -87,3 +87,55 @@ export async function getStringByOriginalValue(originalValue) {
   }
 }
 
+export async function listStrings(filters) {
+  const where = [];
+  const values = [];
+  let i = 1;
+
+  if (filters.is_palindrome != null) {
+    where.push(`is_palindrome = $${i++}`);
+    values.push(filters.is_palindrome);
+  }
+  if (filters.min_length != null) {
+    where.push(`length >= $${i++}`);
+    values.push(filters.min_length);
+  }
+  if (filters.max_length != null) {
+    where.push(`length <= $${i++}`);
+    values.push(filters.max_length);
+  }
+  if (filters.word_count != null) {
+    where.push(`word_count = $${i++}`);
+    values.push(filters.word_count);
+  }
+  if (filters.contains_character != null) {
+    where.push(`character_frequency_map ? $${i++}`);
+    values.push(filters.contains_character);
+  }
+
+  const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+  const sql = `
+    SELECT id, value, length, is_palindrome, unique_characters, word_count,
+           sha256_hash, character_frequency_map, created_at
+    FROM strings
+    ${whereSql}
+    ORDER BY created_at DESC
+  `;
+
+  const result = await query(sql, values);
+  const data = result.rows.map(row => ({
+    id: row.id,
+    value: row.value,
+    properties: {
+      length: row.length,
+      is_palindrome: row.is_palindrome,
+      unique_characters: row.unique_characters,
+      word_count: row.word_count,
+      sha256_hash: row.sha256_hash,
+      character_frequency_map: row.character_frequency_map
+    },
+    created_at: new Date(row.created_at).toISOString()
+  }));
+
+  return { data, count: data.length };
+}
