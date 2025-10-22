@@ -13,5 +13,11 @@ export const SQL = {
               sha256_hash, character_frequency_map, created_at
     FROM strings
     WHERE id = $1
-    `
+    `,
+
+    deleteStringById: `
+      DELETE FROM strings
+      WHERE id = $1
+      RETURNING id
+    `,
 }

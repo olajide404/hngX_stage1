@@ -3,6 +3,7 @@ import { SQL } from '../db/sql.js';
 import { analyzeString,  getIdFromOriginal } from '../utils/analyze.js';
 import { Errors } from '../utils/errors.js';
 
+
 export async function createString(value) {
   const analyzed = analyzeString(value);
   const {
@@ -138,4 +139,16 @@ export async function listStrings(filters) {
   }));
 
   return { data, count: data.length };
+}
+
+export async function deleteStringByOriginalValue(originalValue) {
+  const id = getIdFromOriginal(originalValue);
+
+  const result = await query(SQL.deleteStringById, [id]);
+
+  if (!result.rows.length) {
+    throw Errors.NotFound('String does not exist.');
+  }
+
+  return true; // indicate success
 }

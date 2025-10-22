@@ -1,6 +1,4 @@
 // interacts with incoming HTTP requests and sends responses.
-
-import { Errors } from '../utils/errors.js';
 import { createString, getStringByOriginalValue, listStrings } from '../service.js/strings.service.js';
 import { ensureHasValueField, ensureValueIsString } from '../utils/validate.js';
 import {
@@ -9,6 +7,10 @@ import {
     parseOptionalSingleChar,
     validateFilterRelationships
 } from '../utils/parse.js';
+import { parseNaturalLanguageQuery } from '../utils/nl.js';
+import { Errors } from '../utils/errors.js';
+import { deleteStringByOriginalValue } from '../service.js/strings.service.js'; 
+
 
 export async function postString(req, res, next) {
     try {
@@ -72,4 +74,43 @@ export async function getStrings(req, res, next) {
   }
 }
 
+export async function getStringsByNaturalLanguage(req, res, next) {
+  try {
+    const original = req.query.query;
+    if (typeof original !== 'string' || original.trim() === '') {
+      // Missing or invalid query param
+      throw Errors.BadRequest('Unable to parse natural language query');
+    }
 
+    // Parse NL -> structured filters
+    const { filters } = parseNaturalLanguageQuery(original);
+
+    // Fetch from DB using the same list service
+    const { data, count } = await listStrings(filters);
+
+    return res.status(200).json({
+      data,
+      count,
+      interpreted_query: {
+        original,
+        parsed_filters: filters
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function deleteString(req, res, next) {
+  try {
+    const originalValue = req.params.value;
+    if (typeof originalValue !== 'string' || !originalValue.trim()) {
+      throw Errors.BadRequest('Missing or invalid string parameter.');
+    }
+
+    await deleteStringByOriginalValue(originalValue);
+    return res.status(204).send(); // empty body
+  } catch (err) {
+    next(err);
+  }
+}

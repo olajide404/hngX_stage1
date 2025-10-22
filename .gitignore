@@ -5,3 +5,4 @@ logs/
 *.log
 coverage/
 dist/
+.env.example
