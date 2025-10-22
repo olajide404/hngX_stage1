@@ -28,8 +28,11 @@ function characterFrequencyMap(nfc) {
 }
 
 // hashing
-function sha256Hex(original) {
-  return crypto.createHash('sha256').update(Buffer.from(original, 'utf8')).digest('hex');
+function sha256Hex(originalValue) {
+  return crypto
+  .createHash('sha256')
+  .update(Buffer.from(originalValue, 'utf8'))
+  .digest('hex');
 }
 
 export function getIdFromOriginal(originalValue) {
