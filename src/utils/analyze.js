@@ -1,60 +1,67 @@
 import crypto from 'crypto';
 
-// Count the unicode code points
+// Count the unicode code points accurately
 function codePointLength(str) {
   return Array.from(str).length;
 }
-// Reverse the string(palindrome)
+
+// Reverse string safely by Unicode code points
 function reverseByCodePoint(str) {
   return Array.from(str).reverse().join('');
 }
-// Converts the string to lowercase
+
+// Converts string to lowercase (casefold)
 function casefold(str) {
-  return str.toLocaleLowerCase('und');
+  return str.toLocaleLowerCase('en'); // ✅ safe locale
 }
-// Split strings into words.
+
+// Split strings into words by any Unicode whitespace
 function splitWordsByUnicodeWhitespace(str) {
   const tokens = str.trim().split(/\p{White_Space}+/u).filter(Boolean);
   return tokens;
 }
 
-// now ,i have to build an object showing how many times each character appears
-function characterFrequencyMap(nfc) {
+// Count how many times each character appears (case-insensitive)
+function characterFrequencyMap(str) {
   const map = Object.create(null);
-  for (const cp of nfc) {
+  for (const cp of Array.from(str)) {
     map[cp] = (map[cp] || 0) + 1;
   }
   return map;
 }
 
-// hashing
+// Compute SHA-256 hash (lowercase hex)
 function sha256Hex(originalValue) {
   return crypto
-  .createHash('sha256')
-  .update(Buffer.from(originalValue, 'utf8'))
-  .digest('hex');
+    .createHash('sha256')
+    .update(originalValue.toString(), 'utf8')
+    .digest('hex')
+    .toLowerCase();
 }
 
+// Used to derive ID from original string
 export function getIdFromOriginal(originalValue) {
-  return sha256Hex(originalValue); 
+  // ✅ Normalize to NFC for stable hashing
+  const normalized = originalValue.normalize('NFC');
+  return sha256Hex(normalized);
 }
-
 
 /**
- * Analyze the string. Hash uses the ORIGINAL (UTF-8).
- * Other analysis can use NFC-normalized string.
+ * Analyze the string and return computed properties
+ * Hash uses NFC-normalized version for consistency.
  */
 export function analyzeString(originalValue) {
-  const id = sha256Hex(originalValue);
-  const nfc = originalValue.normalize('NFC');
+  const normalized = originalValue.normalize('NFC');
+  const id = sha256Hex(normalized);
 
-  const cf = casefold(nfc);
-  const length = codePointLength(nfc);
-  const is_palindrome = cf === reverseByCodePoint(cf);
+  const folded = casefold(normalized);
+  const reversed = reverseByCodePoint(folded);
+  const length = codePointLength(normalized);
+  const is_palindrome = folded === reversed;
 
-  const unique_characters = new Set(Array.from(nfc)).size;
-  const word_count = splitWordsByUnicodeWhitespace(nfc).length;
-  const character_frequency_map = characterFrequencyMap(nfc);
+  const unique_characters = new Set(Array.from(normalized)).size;
+  const word_count = splitWordsByUnicodeWhitespace(normalized).length;
+  const character_frequency_map = characterFrequencyMap(normalized);
 
   return {
     id,

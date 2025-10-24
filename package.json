@@ -1,11 +1,11 @@
 {
-  "name": "string-analyser-api",
+  "name": "string-analyzer-api",
   "version": "1.0.0",
   "description": "",
   "main": "src/server.js",
   "type": "module",
   "scripts": {
-  "migrate": "node src/db/migrate.js",
+  "migrate": "psql \"$DATABASE_URL\" -f migrations/001_create_strings.sql",
   "dev": "node --env-file=.env src/server.js",
   "start": "node src/server.js"
 },
@@ -13,7 +13,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "crypto": "^1.0.1",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "pg": "^8.16.3"

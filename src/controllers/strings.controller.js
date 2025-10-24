@@ -1,5 +1,5 @@
 // interacts with incoming HTTP requests and sends responses.
-import { createString, getStringByOriginalValue, listStrings } from '../service.js/strings.service.js';
+import { createString, getStringByOriginalValue, listStrings } from '../service/strings.service.js';
 import { ensureHasValueField, ensureValueIsString } from '../utils/validate.js';
 import {
     parseOptionalBoolean,
@@ -9,12 +9,12 @@ import {
 } from '../utils/parse.js';
 import { parseNaturalLanguageQuery } from '../utils/nl.js';
 import { Errors } from '../utils/errors.js';
-import { deleteStringByOriginalValue } from '../service.js/strings.service.js'; 
+import { deleteStringByOriginalValue } from '../service/strings.service.js'; 
 
 
 export async function postString(req, res, next) {
     try {
-        if (req.body == null || typeof req.body !== 'object') {
+    if (!req.body || typeof req.body !== 'object' || !Object.hasOwn(req.body, 'value')) {
             throw Errors.BadRequest('Invalid JSON.');
         }
         ensureHasValueField(req.body);

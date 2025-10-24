@@ -1,9 +1,10 @@
+// src/service/strings.service.js
 import { query } from '../db/index.js';
 import { SQL } from '../db/sql.js';
-import { analyzeString,  getIdFromOriginal } from '../utils/analyze.js';
+import { analyzeString, getIdFromOriginal } from '../utils/analyze.js';
 import { Errors } from '../utils/errors.js';
 
-
+// ---------- Create / Analyze String ----------
 export async function createString(value) {
   const analyzed = analyzeString(value);
   const {
@@ -28,10 +29,9 @@ export async function createString(value) {
       unique_characters,
       word_count,
       sha256_hash,
-      character_frequency_map
+      JSON.stringify(character_frequency_map) // ✅ stringify JSONB
     ]);
 
-    // Only access result.rows if the query succeeded
     if (!result || !result.rows || result.rows.length === 0) {
       throw Errors.BadRequest('Unexpected DB response.');
     }
@@ -52,27 +52,29 @@ export async function createString(value) {
       created_at: new Date(row.created_at).toISOString()
     };
   } catch (err) {
-    // Handle duplicate string gracefully
     if (err.code === '23505') {
+      // ✅ Handle duplicate
       throw Errors.Conflict('String already exists.');
     }
-
-    // Pass other DB errors upward
+    if (err.code === '42P01') {
+      console.error('❌ Table "strings" not found. Run migration.');
+    }
     throw err;
   }
 }
 
+
+// ---------- Get Specific String ----------
 export async function getStringByOriginalValue(originalValue) {
-
   const id = getIdFromOriginal(originalValue);
+  const result = await query(SQL.selectStringById, [id]); // ✅ consistent name
 
-  const result = await query(SQL.selectStringbyId, [id]);
-  if (!result || !result.rows || result.rows.length === 0) {
-    throw Errors.NotFound('String not found.');
+  if (!result || result.rowCount === 0) {
+    // ✅ consistent 404
+    throw Object.assign(new Error('Not found.'), { status: 404 });
   }
 
   const row = result.rows[0];
-
   return {
     id: row.id,
     value: row.value,
@@ -85,9 +87,11 @@ export async function getStringByOriginalValue(originalValue) {
       character_frequency_map: row.character_frequency_map
     },
     created_at: new Date(row.created_at).toISOString()
-  }
+  };
 }
 
+
+// ---------- List Strings with Filters ----------
 export async function listStrings(filters) {
   const where = [];
   const values = [];
@@ -124,6 +128,7 @@ export async function listStrings(filters) {
   `;
 
   const result = await query(sql, values);
+
   const data = result.rows.map(row => ({
     id: row.id,
     value: row.value,
@@ -141,14 +146,15 @@ export async function listStrings(filters) {
   return { data, count: data.length };
 }
 
+
+// ---------- Delete String ----------
 export async function deleteStringByOriginalValue(originalValue) {
   const id = getIdFromOriginal(originalValue);
+  const result = await query('DELETE FROM strings WHERE id = $1 RETURNING id', [id]); // ✅ RETURNING ensures feedback
 
-  const result = await query(SQL.deleteStringById, [id]);
-
-  if (!result.rows.length) {
-    throw Errors.NotFound('String does not exist.');
+  if (!result || result.rowCount === 0) {
+    throw Object.assign(new Error('Not found.'), { status: 404 }); // ✅ 404 not 500
   }
 
-  return true; // indicate success
+  return true; // controller sends 204
 }
